@@ -1,6 +1,6 @@
 # modules/meta-repo.md — Meta-repo rules (IDE ↔ template lifecycle)
 
-> Version: 1.1.0 | Updated: 2026-04-21 | Protocol: Lead Protocol v2.0.0+
+> Version: 1.2.0 | Updated: 2026-09-15 | Protocol: Lead Protocol v2.2.0+
 > Scope: Opt-in module. Activate via `PROJECT_RULES.md §J8 Active modules: meta-repo`.
 > Applies to: **meta-repos** — repositories that develop the Lead Protocol itself and contain both a root `.agents/` directory and a `template/` directory. Consumer repos almost never list this module.
 
@@ -35,6 +35,7 @@ Templates distributed with the Lead Protocol ship state files populated with pla
 
 | File | Pristine indicator |
 |---|---|
+| `PROJECT_RULES.md` | `[Project Name]` in `§J1` Name, or `[...]` in `§J8` substrate/modules. Triggers the `PROTOCOL_RULES §P10` first-run setup interview |
 | `handoff.md` | Literal `YYYY-MM-DD` or `[Your Agent Signature]` placeholders |
 | `decisions.jsonl` | Empty file |
 | `JOURNAL.md` | Only the header + the "*(No entries yet — …)*" placeholder |
@@ -43,7 +44,7 @@ Templates distributed with the Lead Protocol ship state files populated with pla
 | `active_sessions.md` | Empty table body (header present, no session rows) |
 | `checkpoints/` | Empty directory (or only `.gitkeep`) |
 
-A state file with real dates, real agent signatures, real decision entries, or real checkpoint files is populated and authoritative. Mixed state (some placeholders, some real entries) is treated as populated — the real entries are authoritative.
+A state file with real dates, real agent signatures, real decision entries, or real checkpoint files is populated and authoritative. Mixed state (some placeholders, some real entries) is treated as populated — the real entries are authoritative, but the kernel `PROTOCOL_RULES §P10` gate still applies when critical Name or §J8 substrate/modules values contain placeholders; preserve the existing real values during setup.
 
 ## §M-meta-5 — Boot sequence in a meta-repo
 

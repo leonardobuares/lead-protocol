@@ -12,6 +12,7 @@ Read, in order:
 
 1. `.agents/CORE_RULES.md` (this file)
 2. `.agents/PROJECT_RULES.md` — business context; read `§J8 Active modules` first
+2a. Apply the `§P10` setup gate before loading modules (see the first-run contract below).
 3. `.agents/modules/<scope>.md` — for each scope listed in `§J8 Active modules`, in declaration order
 4. `.agents/AGENTS_MAP.md` — tool-signature → agent-slug map (needed to resolve `<agent>` before forming the per-pair handoff path)
 5. `.agents/sessions/active_sessions.md` — concurrent-session awareness
@@ -20,6 +21,8 @@ Read, in order:
 Before answering a project question, consult relevant `INDEX.md` entries on demand, then read canonical sources. If the map is absent, use `PROJECT_RULES.md §J6` and the independent search recipes in `PROTOCOL_RULES.md §P-Access`; absence never blocks legacy boot. Do not load the full map or its targets at boot.
 
 Listing (not reading) of `.agents/checkpoints/` is enough on boot; individual checkpoints load on demand when relevant. `PROTOCOL_RULES.md` itself is consulted on demand — not in the baseline — per `§P-Access`.
+
+After step 2, if `PROJECT_RULES.md` is still pristine (see *First-run setup is a hard boot gate* below), run the `§P10` setup gate before proceeding to step 3.
 
 ---
 
@@ -64,6 +67,10 @@ Agents never edit `.agents/AGENTS_MAP.md` autonomously. They *propose* additions
 Every non-trivial session closes by self-verifying the checklist in `handoff.md`. One item is a **procedural question** to the user: *"Did this session produce a structurally significant delivery? If yes, promote to JOURNAL."* No heuristic, no auto-detection. Detail: `PROTOCOL_RULES.md §P3 — Session close ritual`.
 
 Implementation completion must record executed validation or an explicit inability reason. See `PROTOCOL_RULES.md §P3 — Execution evidence` for the optional checkpoint/close-receipt contract and discoverable references; the handoff schema remains immutable.
+
+### First-run setup is a hard boot gate
+
+If `PROJECT_RULES.md` is absent or still pristine (the `§J1` Name or the `§J8` substrate/modules still contain a `[...]` placeholder), the agent must run the first-run setup interview and write the answers before doing any other requested work, even work the user asked for first. The user may reply `later` or `skip` to defer for this session only; the gate re-fires next session. Non-interactive environments (CI, Codespaces, devcontainers) warn without writing configuration. A repo-root `.lead-protocol-source` sentinel disables the gate for the framework's own source repo. Setup preserves existing values and clarifies required answers. The gate self-clears when critical fields contain no literal `[`. Detail: `PROTOCOL_RULES.md §P10`.
 
 ---
 

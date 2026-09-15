@@ -432,12 +432,15 @@ Every compliant agent reads, in order:
 
 1. `.agents/CORE_RULES.md` — index + essential contracts.
 2. `.agents/PROJECT_RULES.md` — your project's identity, language rules, tone, operational preferences. Read `§J8 Active modules` first.
+2a. Apply the first-run setup gate (`§P10`) before loading modules.
 3. `.agents/modules/<scope>.md` — for each scope listed in `§J8 Active modules`, in declaration order.
 4. `.agents/AGENTS_MAP.md` — resolve this agent's own `<agent>` slug from its tool signature.
 5. `.agents/sessions/active_sessions.md` — concurrent-session awareness.
 6. `.agents/local/<actor>/<agent>/handoff.md` — current state of this pair.
 
 `PROTOCOL_RULES.md` itself is read **on demand**, not in the baseline — `CORE_RULES.md` points agents there when needed. This keeps baseline cost bounded. See `PROTOCOL_RULES.md §P-Access` for the full load contract.
+
+**First run (v2.4.0):** in interactive consumer sessions, if `PROJECT_RULES.md` is still the pristine template, the agent does not silently proceed. It runs a short setup interview, fills in your project identity, and only then handles your request. See `PROTOCOL_RULES.md §P10`. You can configure the file by hand, or reply `later` / `skip` to defer for this session. Non-interactive sessions warn without writing configuration. The source sentinel exempts this framework repository and must not be copied into consumers. This is an agent instruction contract shipped in v2.4.0, not new CLI runtime enforcement.
 
 The universal `AGENTS.md` pointer and tool-specific compatibility pointers such as `CLAUDE.md` let agent tools discover `.agents/` without custom configuration.
 
@@ -468,7 +471,7 @@ Patch bumps (Z) never break anything. Minor bumps (Y) may introduce new features
 
 | Version | Highlights |
 |---|---|
-| **2.4.0** | Project knowledge map, create-only INDEX installation, bounded Unicode-safe history lookup, and sanitized project seeds. Kernel 2.2.0; CORE 1.7.0; PROJECT_RULES 2.1.0. |
+| **2.4.0** | Project knowledge map, create-only INDEX installation, Unicode-safe history lookup, pristine project seeds, and instruction-only first-run setup (`§P10`). Kernel 2.2.0; CORE 1.7.0; meta-repo 1.2.0; PROJECT_RULES 2.1.0. |
 | **2.3.0** | Optional execution evidence, primary product status, concurrent worktree guidance, and bounded append-only integrity/union handling. Kernel 2.1.1; git-substrate 1.4.0. |
 | **2.2.0** | Adds state-preserving CLI `update`, refuses accidental reinitialization of existing projects, and validates static path hazards before writes (#50, building on #26; addresses #25 and #40). Kernel remains 2.0.2. |
 | **2.1.5** | Corrects CLI validation of populated handoffs containing placeholder examples (#49), keeps SPDX identifiers consistent, includes the fast-uri lockfile update (#48), and verifies immutable npm publication plus installed consumer behavior. Kernel remains 2.0.2. |

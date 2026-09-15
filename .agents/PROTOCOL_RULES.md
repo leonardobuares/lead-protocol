@@ -489,6 +489,7 @@ Read order matters: the `(actor, agent)` pair must be resolved *before* the pair
 
 1. `.agents/CORE_RULES.md` — index plus essential contracts.
 2. `.agents/PROJECT_RULES.md` — project identity.
+2a. Run the `§P10` setup gate before loading modules, unless its source exemption or session-only deferral/non-interactive path applies.
 3. `.agents/modules/<scope>.md` — for each scope listed in `§J8 Active modules` (in declaration order).
 4. `.agents/AGENTS_MAP.md` — tool-signature → agent-slug map. Required to resolve `<agent>` before the handoff path can be formed.
 5. `.agents/sessions/active_sessions.md` — concurrent-session awareness, needed before any write to the pair's handoff.
@@ -676,7 +677,7 @@ Before closing any significant action:
 
 ## §P5 — Operational model (generic)
 
-- Every agent reads, on session start, in order: `CORE_RULES.md` → `PROJECT_RULES.md` → each active module → `AGENTS_MAP.md` → `sessions/active_sessions.md` → `local/<actor>/<agent>/handoff.md`. See `§P-Access` for the full baseline load.
+- Every agent reads, on session start, in order: `CORE_RULES.md` → `PROJECT_RULES.md` → `§P10` setup gate → each active module → `AGENTS_MAP.md` → `sessions/active_sessions.md` → `local/<actor>/<agent>/handoff.md`. See `§P-Access` for the full baseline load.
 - The active Session Protocol level (1/2/3), the active substrate, and the list of active modules are declared in `PROJECT_RULES.md §J8`.
 - Edits to framework files (`PROTOCOL_RULES.md` kernel, any module file) only happen via methodology upgrade — never ad-hoc.
 - Edits to business files (`PROJECT_RULES.md`, project reference docs) happen per project rules in `§J8`.
@@ -747,7 +748,7 @@ A module is in effect if and only if its scope appears in `Active modules`. Acti
 
 ### Boot
 
-Agents read active modules after `PROJECT_RULES.md` and before `AGENTS_MAP.md` / `sessions/active_sessions.md` / `handoff.md`, in the order listed in `§J8 Active modules`. See `§P-Access` for the full baseline load sequence.
+Agents read active modules after `PROJECT_RULES.md` and its `§P10` setup gate, and before `AGENTS_MAP.md` / `sessions/active_sessions.md` / `handoff.md`, in the order listed in `§J8 Active modules`. See `§P-Access` for the full baseline load sequence.
 
 ### Authoring rules
 
@@ -755,3 +756,59 @@ Agents read active modules after `PROJECT_RULES.md` and before `AGENTS_MAP.md` /
 - When a module cites a kernel anchor, use the fully qualified form `PROTOCOL_RULES §Px` to mark the module→kernel crossing explicitly.
 - A module may depend on another module only if it declares the dependency in its header.
 - Module CI/tooling (if any) must include a top-of-file comment identifying the module it enforces, so consumer repos that do not list the module know not to copy the tooling.
+
+## §P10 — First-run setup interview *(v2.2.0+)*
+
+Lead Protocol ships `PROJECT_RULES.md` as a pristine template: `[Project Name]`, bracketed `[e.g., ...]` examples, and an unconfigured `§J8`. Whether a project was scaffolded by copying the release files or by the bundled CLI, the template is identical and must be configured before the protocol can operate correctly, because without a real `§J8 Active modules` the agent cannot even finish its baseline boot (step 3 loads the modules named there). Consumers frequently skip this step and let agents run against the raw template. This section makes configuration a hard, self-clearing boot gate.
+
+### Pristine detection
+
+After reading `PROJECT_RULES.md` (baseline boot step 2), the project is **unconfigured** when ANY of these holds:
+
+- `PROJECT_RULES.md` is absent.
+- The `§J1` **Name** value still contains a `[...]` placeholder (for example, `[Project Name]`).
+- The `§J8` **Active substrate** or **Active modules** value still contains a `[...]` placeholder.
+
+Detection is purely textual (a `[` inside the field value), as chosen for this instruction-only gate. This section does not add runtime enforcement to the CLI. There is no separate marker file; the filled fields are the marker.
+
+### Framework-source carve-out
+
+If a sentinel file named `.lead-protocol-source` exists at the repository root, the gate is disabled. This marks the Lead Protocol framework's own development and distribution source, where `PROJECT_RULES.md` remains unconfigured by design. The sentinel lives outside `.agents/`. Consumers use CLI init/update or the documented preservation-safe copy flow from sanitized consumer templates. A manual copy includes `.agents/`, `AGENTS.md`, and `CLAUDE.md`, plus the optional `INDEX.md` when supplied by those templates; never copy the sentinel or raw source history. The npm package and CLI init/update template paths exclude the sentinel.
+
+### The gate (interactive environments)
+
+When a project is unconfigured and not carved out, the agent MUST, before performing any other requested work:
+
+1. Pause the user's request and state that the project is not yet configured.
+2. Run the setup interview (below).
+3. Write the answers into `PROJECT_RULES.md`.
+4. Resume the user's original request.
+
+The user may defer for the current session by replying `later` or `skip`. The agent then performs the requested work but operates under an explicit "project unconfigured" caveat, and the gate re-fires at the start of every subsequent session. Deferral is never persisted: there is no "don't ask again". This mirrors the `§P3` AGENTS_MAP fallback, where an unresolved state recurs as a social signal rather than being silently suppressed.
+
+### Non-interactive environments
+
+If the environment is non-interactive (any of `CI`, `GITHUB_ACTIONS`, `CODESPACES`, `DEVCONTAINER` is set, or no interactive input channel exists, the same signals `§P3` uses for `<actor>` ephemeral detection), the agent skips the interview, emits a single warning that `PROJECT_RULES.md` is unconfigured, proceeds with the task, and persists no configured state. The setup gate writes nothing in this path. The next interactive session is gated normally.
+
+### Interview content
+
+The interview gathers the minimum needed for identity and operation. Ask only for missing placeholder values; preserve every existing non-placeholder value unless the user specifically asks to change it. This includes the title, agent table, language rules, modules, and branch convention; derived defaults never override them. Unknown or ambiguous required answers must be clarified with the user rather than guessed. If they cannot be resolved, keep setup incomplete and offer the session-only deferral above. Soft placeholder fields are defaulted with a `refine later` note rather than asked:
+
+| # | Question | Writes to |
+|---|---|---|
+| 1 | Project name | `§J1` Name and the document title line |
+| 2 | Type and one-line purpose | `§J1` Type, Purpose |
+| 3 | Primary stack | `§J1` Stack |
+| 4 | Substrate (`git+github` / `git` / `local` / `cloud-sync` / `other`) | `§J8` Active substrate; auto-derives `§J8` Active modules (`git` or `git+github` gives `git-substrate`; otherwise `none`) and a default branch convention |
+| 5 | Primary language for source and docs | `§J4` (source/docs row). AI operational files stay EN-US regardless, per `§P5` |
+| 6 | Which agents operate here | `§J2` table (defaults: the current agent as lead, Humans as reviewer) |
+
+After the interview the agent:
+
+- Fills every bracketed field it has an answer for. Sets only soft placeholder fields (`§J3` tone, `§J5` extra checks, `§J1` Consumers) to sensible defaults annotated `<!-- refine later -->`. It never leaves a `[...]` placeholder in Name or `§J8`.
+- Updates the metadata date to today when setup changes are written; existing project values remain protected as above.
+- Proposes any new agent-signature rows for `AGENTS_MAP.md` to the user for confirmation, but does NOT write `AGENTS_MAP.md` itself (`§P3`: AGENTS_MAP is maintainer-managed).
+
+### Idempotency
+
+Once Name and `§J8` carry values without the literal `[`, pristine detection returns false. It is checked again each session and re-fires if a critical placeholder is reintroduced. No flag, no marker, nothing to drift.

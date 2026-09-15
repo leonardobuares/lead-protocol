@@ -84,6 +84,11 @@ try {
     .pop();
   const tgz = path.join(tmp, tgzName);
   console.log(`[test-pack] tarball: ${tgz}`);
+  const tarEntries = capture("Inspecting packed sentinel boundary", `tar -tzf ${q(tgz)}`);
+  if (tarEntries.split(/\r?\n/).some(entry => entry.split("/").includes(".lead-protocol-source"))) {
+    throw new Error("source sentinel leaked into tarball");
+  }
+  console.log("[test-pack] OK: source sentinel absent from tarball");
 
   // 3. Install the tarball into a throwaway consumer (real files allowlist + deps).
   writeFileSync(
@@ -124,6 +129,7 @@ try {
   const excludedCacheArtifacts = listRelativeEntries(shippedTemplates).filter((relative) => {
     const segments = relative.split(path.sep);
     return (
+      segments.includes(".lead-protocol-source") ||
       segments.includes("__pycache__") ||
       segments.includes(".pytest_cache") ||
       /\.(pyc|pyo)$/i.test(segments.at(-1))
@@ -237,6 +243,7 @@ try {
     readFileSync(projectRules, "utf-8")
       .replace("# PROJECT_RULES.md — [Project Name]", "# PROJECT_RULES.md — Package smoke")
       .replace("- **Name:** [Project Name]", "- **Name:** Package smoke")
+      .replace(/- \*\*Active substrate:\*\*.*$/m, "- **Active substrate:** local")
       .replace(/- \*\*Active modules:\*\*.*$/m, "- **Active modules:** none"),
   );
 
@@ -347,6 +354,11 @@ try {
     if (!existsSync(path.join(installed, "dist", entry))) throw new Error(`missing entrypoint: ${entry}`);
   }
   run("packed init/update safety and preservation regressions", `node --test ${q(path.join(pkgRoot, "test", "updater.test.mjs"))}`, {
+    cwd: tmp,
+    env: { ...process.env, LEAD_PROTOCOL_TEST_BIN: bin },
+  });
+
+  run("packed first-run instruction and consumer contracts", `node --test ${q(path.join(pkgRoot, "test", "first-run.test.mjs"))}`, {
     cwd: tmp,
     env: { ...process.env, LEAD_PROTOCOL_TEST_BIN: bin },
   });
